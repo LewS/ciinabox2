@@ -484,6 +484,59 @@ ciinabox_services:
           ip: ${VPCCidr}
           desc: selenium access from inside the vpc
           
+  gitlab:
+    enable: false
+    fargate: true
+    desired_count: 1
+    version: 
+      gitlab: 
+    service:
+      network_mode: awsvpc
+      cpu: 1024
+      memory: 2048
+      task_definition:
+        gitlab:
+          image: sameersbn/gitlab
+          tag_param: GitlabVersion
+          ports:
+          - 10080
+          - 10022
+          env_vars:
+            GITLAB_PORT:10080
+            GITLAB_SSH_PORT:10022
+      targetgroup:
+        name: gitlab
+        container: gitlab
+        port: 10080
+        protocol: http
+        listener: https
+        type: ip
+        healthcheck:
+          interval: 30
+          timeout: 10
+          healthy_count: 2
+          unhealthy_count: 10
+          path: /
+          code: 200
+        rules:
+          - name:  gitlab
+            host: gitlab.*
+            priority: 1020
+        attributes:
+          deregistration_delay.timeout_seconds: 10
+      service_discovery:
+        name: gitlab
+        container_name: gitlab
+      iam_policies:
+        ec2-regions:
+          action:
+            - ec2:DescribeRegions
+      security_group_rules:
+        - from: 10080
+          ip: ${VPCCidr}
+          desc: gitlab access from inside the vpc
+
+
 config_export:
   global:
     - maximum_availability_zones
